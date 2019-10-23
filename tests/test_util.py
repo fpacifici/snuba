@@ -160,6 +160,16 @@ class TestUtil(BaseTest):
         assert column_expr(dataset, top_k[1], Query({'aggregations': [top_k]}, source), ParsingContext(), top_k[2], top_k[0]) == '(topK(3)(logger) AS top_3)'
 
     @pytest.mark.parametrize('dataset', DATASETS)
+    def test_column_expr(self, dataset):
+        source = dataset.get_dataset_schemas().get_read_schema().get_data_source()
+        col = ('event_id', None, 'event.id')
+        query = Query({"selected_columns": [
+            col,
+        ]}, source)
+        parsing_context = ParsingContext()
+        assert column_expr(dataset, col, query=query, parsing_context=parsing_context)
+
+    @pytest.mark.parametrize('dataset', DATASETS)
     def test_complex_conditions_expr(self, dataset):
         source = dataset.get_dataset_schemas().get_read_schema().get_data_source()
         query = Query({}, source)
@@ -276,3 +286,14 @@ class TestUtil(BaseTest):
         }
         query = Query(body, source)
         assert all_referenced_columns(query) == set(['tags_key', 'tags_value', 'time', 'issue', 'c', 'd'])
+
+        # Aliased columns
+        body = {
+            'selected_columns': [
+                ('event_id', None, 'event.id'),
+                ('group_id', None, 'group.id'),
+                'type',
+            ],
+        }
+        query = Query(body, source)
+        assert all_referenced_columns(query) == set(['event_id', 'group_id', 'type'])
